@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>📝 Digital Guestbook</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f9fbe7;
+        text-align: center;
+        padding: 20px;
+      }
+      h1 {
+        color: #33691e;
+      }
+      #canvas {
+        border: 2px solid #558b2f;
+        background: #fff;
+        cursor: crosshair;
+      }
+      #info,
+      #location,
+      #status {
+        margin-top: 10px;
+        font-size: 16px;
+        font-weight: bold;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin: 15px 10px;
+        background-color: #558b2f;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📝 Digital Guestbook</h1>
+    <p id="info">Draw your message/signature below 👇</p>
+    <canvas id="canvas" width="500" height="300"></canvas>
+    <div id="location">📍 Detecting location...</div>
+    <div id="status">Status: Ready</div>
+    <br />
+    <button onclick="saveSketch()">💾 Save Entry</button>
+    <button onclick="clearCanvas()">🧹 Clear</button>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const locationDiv = document.getElementById("location");
+      const statusDiv = document.getElementById("status");
+
+      let drawing = false;
+      let userLocation = "Unknown";
+
+      // Canvas Drawing
+      canvas.addEventListener("mousedown", () => (drawing = true));
+      canvas.addEventListener("mouseup", () => {
+        drawing = false;
+        ctx.beginPath();
+      });
+      canvas.addEventListener("mouseout", () => (drawing = false));
+      canvas.addEventListener("mousemove", draw);
+
+      function draw(e) {
+        if (!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#000";
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      }
+
+      // Get Location
+      function getLocation() {
+        if (!navigator.geolocation) {
+          locationDiv.textContent = "Geolocation not supported.";
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude.toFixed(2);
+            const lon = pos.coords.longitude.toFixed(2);
+            userLocation = `Lat: ${lat}, Lon: ${lon}`;
+            locationDiv.textContent = `📍 Your Location: ${userLocation}`;
+          },
+          (err) => {
+            locationDiv.textContent = "Failed to get location.";
+          }
+        );
+      }
+
+      // Simulated Background Save
+      function saveSketch() {
+        statusDiv.textContent = "Saving entry in background...";
+
+        const delay = Math.random() > 0.5 ? 1000 : 3000; // simulate fast/slow connection
+        const dataUrl = canvas.toDataURL("image/png");
+
+        setTimeout(() => {
+          localStorage.setItem("guestbookEntry", dataUrl);
+          localStorage.setItem("guestbookLocation", userLocation);
+          statusDiv.textContent = "✅ Entry saved successfully!";
+        }, delay);
+      }
+
+      function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Load saved sketch on page load
+      window.onload = () => {
+        getLocation();
+
+        const saved = localStorage.getItem("guestbookEntry");
+        const loc = localStorage.getItem("guestbookLocation");
+
+        if (saved) {
+          const img = new Image();
+          img.onload = () => ctx.drawImage(img, 0, 0);
+          img.src = saved;
+          if (loc) locationDiv.textContent = `📍 Saved Location: ${loc}`;
+          statusDiv.textContent = "🗃️ Loaded previous entry";
+        }
+      };
+    </script>
+  </body>
+</html>
